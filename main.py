@@ -1,34 +1,22 @@
 import time
-import threading
 
-from workers.sleepy_workers import SleepyWorker
-from workers.squared_sum_workers import SquaredSumWorker
+from workers.wiki_worker import WikiWorker
+from workers.yahoo_finane_worker import YahooFinanceWorker
 
 def main() -> None:
-    calc_start_time = time.time()
+    start_time = time.time()
     
-    current_threads: list[threading.Thread] = []
-    for seconds in range(5):
-        maximum_value = (seconds+ 1) * 1000000
-        squared_sum_worker = SquaredSumWorker(maximum_value)
-        current_threads.append(squared_sum_worker)
+    wiki = WikiWorker()
 
-    for thread in current_threads:
-        thread.join()
+    current_workers: list[YahooFinanceWorker] = []
+    for symbol in wiki.get_sp_500_companies():
+        yahoo = YahooFinanceWorker(symbol)
+        current_workers.append(yahoo)
 
-    print("calculating sum of squares took:", round(time.time() - calc_start_time, 2))
+    for worker in current_workers:
+        worker.join()
 
-    sleep_start_time = time.time()
-            
-    current_threads: list[threading.Thread] = []
-    for seconds in range(1, 6):
-        sleepy_worker = SleepyWorker(seconds)
-        current_threads.append(sleepy_worker)
-
-    for thread in current_threads:
-        thread.join()
-
-    print("sleeping took:", round(time.time() - sleep_start_time, 2))
+    print("Execution took:", time.time() - start_time)
 
 
 if __name__ == "__main__":
