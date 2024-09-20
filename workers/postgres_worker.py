@@ -4,20 +4,23 @@ import os
 import threading
 from multiprocessing import Queue
 from typing import Literal
+import logging
 from sqlalchemy import create_engine
 from sqlalchemy.sql import text
 
-DONE = "DONE"
+from workers.done import DONE, DONE_T
 
 class PostgresMasterScheduler(threading.Thread):
-    def __init__(self, input_queue: Queue[tuple[str, float, str] | Literal["DONE"]]):
+    def __init__(self, input_queue: Queue[tuple[str, float, int] | DONE_T]):
         super().__init__()
         self._input_queue = input_queue
+
+        self.start()
 
     def run(self):
         while True:
             val = self._input_queue.get()
-            if val == "DONE":
+            if val == DONE:
                 break
 
             symbol, price, extracted_time = val
@@ -25,7 +28,7 @@ class PostgresMasterScheduler(threading.Thread):
             postgres_worker.insert_into_db()
 
 class PostgresWorker():
-    def __init__(self, symbol: str, price: float, extracted_time: str) -> None:
+    def __init__(self, symbol: str, price: float, extracted_time: int) -> None:
         self._symbol = symbol
         self._price = price
         self._extracted_time = extracted_time
@@ -38,6 +41,7 @@ class PostgresWorker():
         self._engine = create_engine(f"postgresql://{self._PG_USER}:{self._PG_PW}@{self._PG_HOST}/{self._PG_DB}")
 
     def insert_into_db(self):
+        logging.info("inserting into db")
         insert_query = self._create_import_query()
 
         with self._engine.connect() as conn:
