@@ -9,7 +9,7 @@ from typing import Literal
 
 from logger import logger
 from workers.wiki_worker import WikiWorker
-from workers.yahoo_finane_worker import YahooFinancePriceScheduler
+from workers.yahoo_finance_worker import YahooFinancePriceScheduler
 from workers.postgres_worker import PostgresMasterScheduler
 from workers.done import DONE
 
