@@ -4,7 +4,6 @@ import os
 import datetime
 import threading
 from multiprocessing import Queue
-from typing import Literal
 from sqlalchemy import create_engine
 from sqlalchemy.sql import text
 from queue import Empty

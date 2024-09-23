@@ -4,7 +4,6 @@ from multiprocessing import Queue
 from queue import Empty
 import threading
 import time
-from typing import Literal
 import bs4
 import random
 import requests
@@ -42,7 +41,7 @@ class YahooFinancePriceScheduler(threading.Thread):
             logger.debug(f"obtained price: {price}")
 
             if price is not None:
-                output_values = (symbol, price, datetime.datetime.utcnow())
+                output_values = (symbol, price, datetime.datetime.now(datetime.timezone.utc))
                 logger.debug(f"adding values to queue: {output_values}")
                 self._put_all(output_values)
 

@@ -22,9 +22,11 @@ workers:
     input_queue: SymbolQueue
     output_queues:
       - PostgresUploading
+    instances: 2
 
   - name: PostgresWorker
     description: Takes stock data and saves it in Postgres
     location: workers.postgres_worker
     class: PostgresMasterScheduler
     input_queue: PostgresUploading
+    instances: 4

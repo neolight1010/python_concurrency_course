@@ -15,3 +15,4 @@ dependencies = [
 [tool.pyright]
 venvPath = "."
 venv = ".venv"
+typeCheckingMode = "strict"
