@@ -6,11 +6,11 @@ from multiprocessing import Queue
 from typing import Any, Protocol
 import yaml
 
-class _WorkerFactory(Protocol):
-    def __call__(self, input_queue: Queue[Any] | None, output_queues: list[Queue[Any]] | None) -> _Worker:
+class WorkerFactory(Protocol):
+    def __call__(self, input_queue: Queue[Any] | None, output_queues: list[Queue[Any]] | None) -> Worker:
         ...
 
-class _Worker(Protocol):
+class Worker(Protocol):
     def join(self) -> None:
         ...
 
@@ -18,13 +18,20 @@ class YamlPipelineExecutor:
     def __init__(self, pipeline_location: str) -> None:
         self._pipeline_location = pipeline_location
         self._queues: dict[str, Queue[Any]] = {}
-        self._workers: dict[str, list[_Worker]] = {}
+        self._workers: dict[str, list[Worker]] = {}
 
     def process_pipeline(self) -> None:
         self._load_pipeline()
         self._initialize_queues()
         self._initialize_workers()
-        self._join_workers()
+
+    # TODO We shouldn't use this method. Delete later
+    def add_queue(self, name: str, queue: Queue[Any]) -> None:
+        self._queues[name] = queue
+
+    def join(self) -> None:
+        for worker in itertools.chain(*self._workers.values()):
+            worker.join()
 
     def _load_pipeline(self) -> None:
         with open(self._pipeline_location) as in_file:
@@ -37,7 +44,7 @@ class YamlPipelineExecutor:
 
     def _initialize_workers(self) -> None:
         for worker in self._yaml_data["workers"]:
-            worker_factory: _WorkerFactory = getattr(importlib.import_module(worker["location"]), worker["class"])
+            worker_factory: WorkerFactory = getattr(importlib.import_module(worker["location"]), worker["class"])
             input_queue_name = worker.get("input_queue")
             output_queue_names = worker.get("output_queues")
 
@@ -48,7 +55,3 @@ class YamlPipelineExecutor:
 
             worker_instances = [worker_factory(input_queue, output_queues) for _ in range(num_instances)]
             self._workers[worker["name"]] = worker_instances
-
-    def _join_workers(self) -> None:
-        for worker in itertools.chain(*self._workers.values()):
-            worker.join()

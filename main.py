@@ -1,15 +1,11 @@
 import itertools
 from multiprocessing import Queue
-import datetime
-import time
 import logging
-from typing import Literal
 
 from logger import logger
-from workers.wiki_worker import WikiWorker
-from workers.yahoo_finance_worker import YahooFinancePriceScheduler
-from workers.postgres_worker import PostgresMasterScheduler
 from workers.done import DONE
+from workers.wiki_worker import WikiWorker
+from yaml_reader import YamlPipelineExecutor
 
 
 def main() -> None:
@@ -17,36 +13,23 @@ def main() -> None:
     logger.addHandler(handler)
     logger.setLevel(logging.DEBUG)
 
-    symbol_queue: Queue[str] = Queue()
-    postgres_queue: Queue[tuple[str, float, datetime.datetime] | Literal["DONE"]] = Queue()
-    start_time = time.time()
+    pipeline = YamlPipelineExecutor("wiki_yahoo_scraper_pipeline.yaml")
+    pipeline.process_pipeline()
 
     wiki = WikiWorker()
+    symbol_queue: Queue[str] = Queue()
+    pipeline.add_queue("SymbolQueue", symbol_queue)
 
-    num_yahoo_schedulers = 3
-    yahoo_scheduler_threads: list[YahooFinancePriceScheduler] = [YahooFinancePriceScheduler(symbol_queue, output_queues=postgres_queue) for _ in range(num_yahoo_schedulers)]
-
-    num_postgres_schedulers = 5
-    postgres_scheduler_threads = [PostgresMasterScheduler(postgres_queue) for _ in range(num_postgres_schedulers)]
-
-    LIMIT = 5
     logger.debug("inserting sp500 symbols")
-    for symbol in itertools.islice(wiki.get_sp_500_companies(), LIMIT):
+    for symbol in itertools.islice(wiki.get_sp_500_companies(), 5):
         logger.debug(f"putting symbol: {symbol}")
         symbol_queue.put(symbol)
     logger.debug("finished inserting sp500 symbols")
 
-    logger.debug("sending done signals to yahoo workers")
-    for _ in yahoo_scheduler_threads:
+    for _ in range(20):
         symbol_queue.put(DONE)
 
-    for thread in yahoo_scheduler_threads:
-        thread.join()
-
-    for thread in postgres_scheduler_threads:
-        thread.join()
-
-    logging.info("Execution took:", time.time() - start_time)
+    pipeline.join()
 
 
 if __name__ == "__main__":
