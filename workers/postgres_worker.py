@@ -7,18 +7,24 @@ from multiprocessing import Queue
 from sqlalchemy import create_engine
 from sqlalchemy.sql import text
 from queue import Empty
+from typing import TYPE_CHECKING, Any
 
 from logger import logger
 from workers.done import DONE, DONE_T
 
+
 class PostgresMasterScheduler(threading.Thread):
-    def __init__(self, input_queue: Queue[tuple[str, float, datetime.datetime] | DONE_T]):
+    def __init__(self, input_queue: Queue[tuple[str, float, datetime.datetime] | DONE_T] | None, output_queues: list[Queue[Any]] | None):
         super().__init__()
         self._input_queue = input_queue
 
         self.start()
 
     def run(self):
+        if self._input_queue is None:
+            logger.info("no input queues defined. Stopping")
+            return
+
         while True:
             try:
                 val = self._input_queue.get(timeout=10)
@@ -60,3 +66,11 @@ class PostgresWorker():
 
     def _create_import_query(self) -> str:
         return "INSERT INTO prices (symbol, price, extracted_time) VALUES (:symbol, :price, :extracted_time);"
+
+
+# Check that the classes implement the required protocols for yaml_reader
+if TYPE_CHECKING:
+    from yaml_reader import Worker, WorkerFactory
+
+    factory: WorkerFactory = PostgresMasterScheduler
+    worker: Worker = PostgresMasterScheduler(None, None)

@@ -8,12 +8,14 @@ import bs4
 import random
 import requests
 import datetime
+from typing import TYPE_CHECKING
 
 from logger import logger
 from workers.done import DONE, DONE_T
 
-_OutputValue = tuple[str, float, datetime.datetime] | DONE_T;
-_OutputQueue = Queue[_OutputValue]
+if TYPE_CHECKING:
+    _OutputValue = tuple[str, float, datetime.datetime] | DONE_T;
+    _OutputQueue = Queue[_OutputValue]
 
 class YahooFinancePriceScheduler(threading.Thread):
     def __init__(self, input_queue: Queue[str], output_queues: _OutputQueue | list[_OutputQueue] | None):
