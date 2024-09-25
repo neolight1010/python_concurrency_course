@@ -18,13 +18,17 @@ if TYPE_CHECKING:
     _OutputQueue = Queue[_OutputValue]
 
 class YahooFinancePriceScheduler(threading.Thread):
-    def __init__(self, input_queue: Queue[str], output_queues: _OutputQueue | list[_OutputQueue] | None):
+    def __init__(self, input_queue: Queue[str] | None, output_queues: _OutputQueue | list[_OutputQueue] | None, *, input_values: list[str] = []):
         super().__init__()
         self._input_queue = input_queue
         self._output_queues: list[_OutputQueue] = output_queues if isinstance(output_queues, list) else [output_queues] if output_queues is not None else []
         self.start()
 
     def run(self):
+        if self._input_queue is None:
+            logger.info("no input queue provided. Stopping")
+            return
+
         while True:
             try:
                 symbol = self._input_queue.get(timeout=10)
@@ -33,12 +37,9 @@ class YahooFinancePriceScheduler(threading.Thread):
                 break
 
             if symbol == DONE:
-                logger.debug("yahoo: sending DONE to output queue")
-
-                self._put_all(DONE)
                 break
 
-            yahoo = YahooFinanceWorker(symbol)
+            yahoo = _YahooFinanceWorker(symbol)
             price = yahoo.get_price()
             logger.debug(f"obtained price: {price}")
 
@@ -49,11 +50,14 @@ class YahooFinancePriceScheduler(threading.Thread):
 
             time.sleep(20 * random.random())
 
+        for _ in range(20):
+            self._put_all(DONE)
+
     def _put_all(self, value: _OutputValue) -> None:
         for queue in self._output_queues:
             queue.put(value)
 
-class YahooFinanceWorker:
+class _YahooFinanceWorker:
     def __init__(self, symbol: str):
         super().__init__()
 
@@ -71,3 +75,8 @@ class YahooFinanceWorker:
 
         price_element = soup.find('fin-streamer', class_="livePrice")
         return float(price_element.text.replace(",", "")) if price_element else None
+
+if TYPE_CHECKING:
+    from yaml_reader import WorkerFactory
+
+    factory: WorkerFactory = YahooFinancePriceScheduler

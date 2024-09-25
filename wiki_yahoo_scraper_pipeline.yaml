@@ -6,6 +6,15 @@ queues:
     description: Contains data that needs to be uploaded to Postgres
 
 workers:
+  - name: WikiWorker
+    description: Scrapes Wikipedia to find stock symbols
+    location: workers.wiki_worker
+    class: WikiWorkerMasterScheduler
+    input_values:
+      - https://en.wikipedia.org/wiki/List_of_S%26P_500_companies
+    output_queues:
+      - SymbolQueue
+
   - name: YahooFinanceWorker
     description: Pulls purce data for a specific stock symbol from Yahoo Finance
     location: workers.yahoo_finance_worker

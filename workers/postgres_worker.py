@@ -14,7 +14,7 @@ from workers.done import DONE, DONE_T
 
 
 class PostgresMasterScheduler(threading.Thread):
-    def __init__(self, input_queue: Queue[tuple[str, float, datetime.datetime] | DONE_T] | None, output_queues: list[Queue[Any]] | None):
+    def __init__(self, input_queue: Queue[tuple[str, float, datetime.datetime] | DONE_T] | None, output_queues: list[Queue[Any]] | None, *, input_values: list[str] = []):
         super().__init__()
         self._input_queue = input_queue
 
@@ -70,7 +70,6 @@ class PostgresWorker():
 
 # Check that the classes implement the required protocols for yaml_reader
 if TYPE_CHECKING:
-    from yaml_reader import Worker, WorkerFactory
+    from yaml_reader import WorkerFactory
 
     factory: WorkerFactory = PostgresMasterScheduler
-    worker: Worker = PostgresMasterScheduler(None, None)

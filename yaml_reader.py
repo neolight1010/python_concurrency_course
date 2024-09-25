@@ -7,7 +7,7 @@ from typing import Any, Protocol
 import yaml
 
 class WorkerFactory(Protocol):
-    def __call__(self, input_queue: Queue[Any] | None, output_queues: list[Queue[Any]] | None) -> Worker:
+    def __call__(self, input_queue: Queue[Any] | None, output_queues: list[Queue[Any]] | None, *, input_values: list[str]) -> Worker:
         ...
 
 class Worker(Protocol):
@@ -24,14 +24,7 @@ class YamlPipelineExecutor:
         self._load_pipeline()
         self._initialize_queues()
         self._initialize_workers()
-
-    # TODO We shouldn't use this method. Delete later
-    def add_queue(self, name: str, queue: Queue[Any]) -> None:
-        self._queues[name] = queue
-
-    def join(self) -> None:
-        for worker in itertools.chain(*self._workers.values()):
-            worker.join()
+        self._join()
 
     def _load_pipeline(self) -> None:
         with open(self._pipeline_location) as in_file:
@@ -45,13 +38,19 @@ class YamlPipelineExecutor:
     def _initialize_workers(self) -> None:
         for worker in self._yaml_data["workers"]:
             worker_factory: WorkerFactory = getattr(importlib.import_module(worker["location"]), worker["class"])
+
             input_queue_name = worker.get("input_queue")
             output_queue_names = worker.get("output_queues")
+            input_values: list[str] = worker.get("input_values") or []
 
             input_queue = self._queues[input_queue_name] if input_queue_name is not None else None
             output_queues = [self._queues[output_queue] for output_queue in output_queue_names] if output_queue_names is not None else None
 
             num_instances: int = worker.get("instances", 1)
 
-            worker_instances = [worker_factory(input_queue, output_queues) for _ in range(num_instances)]
+            worker_instances = [worker_factory(input_queue, output_queues, input_values=input_values) for _ in range(num_instances)]
             self._workers[worker["name"]] = worker_instances
+
+    def _join(self) -> None:
+        for worker in itertools.chain(*self._workers.values()):
+            worker.join()
