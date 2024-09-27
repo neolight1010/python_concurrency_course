@@ -22,6 +22,8 @@ class YahooFinancePriceScheduler(threading.Thread):
         super().__init__()
         self._input_queue = input_queue
         self._output_queues: list[_OutputQueue] = output_queues if isinstance(output_queues, list) else [output_queues] if output_queues is not None else []
+        self._input_values = input_values
+
         self.start()
 
     def run(self):
@@ -49,9 +51,6 @@ class YahooFinancePriceScheduler(threading.Thread):
                 self._put_all(output_values)
 
             time.sleep(20 * random.random())
-
-        for _ in range(20):
-            self._put_all(DONE)
 
     def _put_all(self, value: _OutputValue) -> None:
         for queue in self._output_queues:

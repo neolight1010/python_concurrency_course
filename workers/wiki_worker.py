@@ -9,14 +9,13 @@ import requests
 import logging
 import bs4
 
-from workers.done import DONE
-
 class WikiWorkerMasterScheduler(threading.Thread):
     def __init__(self, input_queue: Queue[Any] | None, output_queues: list[Queue[str]] | None, input_values: list[str] = []):
         super().__init__()
 
         self._urls = input_values
         self._output_queues = output_queues or []
+        self._input_queue = input_queue
 
         self.start()
 
@@ -27,9 +26,6 @@ class WikiWorkerMasterScheduler(threading.Thread):
             # Only pass 5 symbols for debugging
             for symbol in itertools.islice(wiki_worker.get_sp_500_companies(), 5):
                 self._put_all(symbol)
-
-        for _ in range(20):
-            self._put_all(DONE)
 
     def _put_all(self, value: str) -> None:
         for queue in self._output_queues:

@@ -18,6 +18,9 @@ class PostgresMasterScheduler(threading.Thread):
         super().__init__()
         self._input_queue = input_queue
 
+        self._output_queues = output_queues
+        self._input_values = input_values
+
         self.start()
 
     def run(self):

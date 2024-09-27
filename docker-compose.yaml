@@ -3,7 +3,7 @@ name: python-concurrency-course
 services:
   db:
     image: postgres
-    restart: unless-stopped
+    restart: on-failure
     environment:
       POSTGRES_USER: postgres
       POSTGRES_DB: postgres

@@ -10,7 +10,9 @@ def main() -> None:
     logger.setLevel(logging.DEBUG)
 
     pipeline = YamlPipelineExecutor("wiki_yahoo_scraper_pipeline.yaml")
-    pipeline.process_pipeline()
+    pipeline.start()
+
+    pipeline.join()
 
 
 if __name__ == "__main__":
