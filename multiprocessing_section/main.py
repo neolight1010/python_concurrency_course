@@ -1,4 +1,5 @@
 import multiprocessing
+import functools
 import time
 
 
@@ -9,15 +10,15 @@ def _main() -> None:
     print("Number of CPUs:", num_cpus_to_use)
 
     with multiprocessing.Pool(num_cpus_to_use) as pool:
-        result = pool.map(_square, [1, 2, 3])
+        result = pool.map(functools.partial(_power, 2), [1, 2, 3])
 
     print("Result:", result)
 
     print("everything took:", time.time() - start_time, "seconds")
 
 
-def _square(x: int) -> int:
-    return x * x
+def _power(power: int, base: int) -> int:
+    return base**power
 
 
 if __name__ == "__main__":
