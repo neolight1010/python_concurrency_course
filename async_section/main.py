@@ -2,22 +2,23 @@ import asyncio
 
 
 async def _main() -> None:
-    async for i in _sleep(5):
-        print(i)
+    pending = set(asyncio.create_task(_sleep(i)) for i in range(10))
+
+    while len(pending) > 0:
+        done, pending = await asyncio.wait(pending, return_when="FIRST_COMPLETED")
+
+        for task in done:
+            print(await task)
+
+        print("pending:", len(pending))
 
 
 async def _sleep(n: int):
-    print("before sleep", n)
+    print("waiting", n)
+    await asyncio.sleep(n)
+    print("waited", n)
 
-    for i in range(n):
-        yield i
-        await asyncio.sleep(1)
-
-    print("after sleep", n)
-
-
-async def _hello() -> None:
-    print("hello!")
+    return n
 
 
 if __name__ == "__main__":
